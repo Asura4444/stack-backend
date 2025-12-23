@@ -1,7 +1,8 @@
 import express from "express";
-import pkg from "pg";
 import cors from "cors";
+import pkg from "pg";
 import dotenv from "dotenv";
+
 dotenv.config();
 
 const { Pool } = pkg;
@@ -9,48 +10,30 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// 🧱 Supabase bağlantısı
+// ✅ Render PORT değişkenini kullan
+const PORT = process.env.PORT || 3000;
+
+// ✅ Supabase bağlantısı (DATABASE_URL kullanıyor)
 const pool = new Pool({
-  host: process.env.DB_HOST,
-  port: 5432,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-  ssl: { rejectUnauthorized: false },
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false } // Supabase için zorunlu
 });
 
-// === ROUTES ===
-
-// Ana test
+// Test endpoint
 app.get("/", (req, res) => {
-  res.send("🧠 Stack Finance API is running...");
+  res.send("Stack Backend is running ✅");
 });
 
-// Bankalar
+// Bankalar tablosu örnek endpoint
 app.get("/api/banks", async (req, res) => {
-  const { rows } = await pool.query("SELECT * FROM banks;");
-  res.json(rows);
+  try {
+    const result = await pool.query("SELECT * FROM banks");
+    res.json(result.rows);
+  } catch (error) {
+    console.error("Database error:", error);
+    res.status(500).json({ error: "Database connection failed" });
+  }
 });
 
-// Kartlar
-app.get("/api/cards", async (req, res) => {
-  const { rows } = await pool.query(`
-    SELECT cards.*, banks.name as bank_name 
-    FROM cards 
-    JOIN banks ON cards.bankId = banks.id;
-  `);
-  res.json(rows);
-});
+app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
 
-// Yatırımlar
-app.get("/api/investments", async (req, res) => {
-  const { rows } = await pool.query(`
-    SELECT investments.*, banks.name as bank_name 
-    FROM investments 
-    JOIN banks ON investments.bankId = banks.id;
-  `);
-  res.json(rows);
-});
-
-const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => console.log(`🚀 Stack API running on port ${PORT}`));
